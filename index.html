@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linear Equation Solver</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,600&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #faf7f2;
+  --cream2: #f3ede3;
+  --cream3: #ebe3d5;
+  --ink: #1a1610;
+  --ink2: #3d3428;
+  --ink3: #6b5f4e;
+  --ink4: #9a8e7e;
+  --ink5: #c4b8a8;
+  --gold: #b8860b;
+  --gold2: #d4a017;
+  --gold-light: #f5e6c0;
+  --red: #8b2e2e;
+  --green: #2e6b3e;
+  --blue: #1e3a5f;
+  --shadow: rgba(26,22,16,0.08);
+  --shadow2: rgba(26,22,16,0.15);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Crimson Pro', Georgia, serif;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Paper texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.6;
+}
+
+/* Decorative side rule */
+.side-rule {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(to bottom, transparent 5%, var(--gold) 20%, var(--gold) 80%, transparent 95%);
+  opacity: 0.6;
+}
+
+.side-rule-right {
+  left: auto; right: 0;
+  opacity: 0.2;
+}
+
+/* Layout */
+.page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 64px 32px 100px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+header {
+  margin-bottom: 56px;
+  animation: riseIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.header-rule {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.rule-line {
+  flex: 1;
+  height: 1px;
+  background: var(--ink5);
+}
+
+.rule-diamond {
+  width: 6px; height: 6px;
+  background: var(--gold);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.issue-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 400;
+}
+
+h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(44px, 8vw, 80px);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--gold);
+}
+
+.byline {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.byline-text {
+  font-size: 14px;
+  color: var(--ink4);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.byline-dot {
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: var(--ink5);
+  flex-shrink: 0;
+}
+
+/* Controls bar */
+.controls-bar {
+  background: var(--cream2);
+  border: 1px solid var(--cream3);
+  border-radius: 12px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+  box-shadow: 0 2px 12px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+  animation: riseIn 0.8s 0.1s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ctrl-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink4);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--ink5);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--cream);
+}
+
+.stepper button {
+  background: none;
+  border: none;
+  color: var(--ink3);
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: 'Crimson Pro', serif;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.stepper button:hover { background: var(--gold-light); color: var(--gold); }
+
+.stepper-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  width: 36px;
+  text-align: center;
+  border-left: 1px solid var(--ink5);
+  border-right: 1px solid var(--ink5);
+  height: 32px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.divider-v {
+  width: 1px;
+  height: 24px;
+  background: var(--cream3);
+  flex-shrink: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Crimson Pro', serif;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16,1,0.3,1);
+  letter-spacing: 0.01em;
+}
+
+.btn-solve {
+  background: var(--ink);
+  color: var(--cream);
+  font-weight: 500;
+  padding: 9px 28px;
+  box-shadow: 0 2px 8px var(--shadow2);
+}
+.btn-solve:hover {
+  background: var(--ink2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--shadow2);
+}
+.btn-solve:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink4);
+  border: 1.5px solid var(--cream3);
+  font-size: 13px;
+  padding: 7px 16px;
+}
+.btn-secondary:hover {
+  border-color: var(--ink4);
+  color: var(--ink2);
+  background: var(--cream2);
+}
+
+/* Equation section */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  animation: riseIn 0.8s 0.15s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink3);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.section-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--cream3);
+}
+
+/* Equation card */
+.eq-card {
+  background: white;
+  border: 1px solid var(--cream3);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px var(--shadow), 0 1px 4px var(--shadow);
+  animation: riseIn 0.8s 0.2s cubic-bezier(0.16,1,0.3,1) both;
+  margin-bottom: 28px;
+}
+
+.eq-card-header {
+  background: var(--cream2);
+  border-bottom: 1px solid var(--cream3);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eq-card-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink4);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.eq-card-hint {
+  font-size: 12px;
+  color: var(--ink5);
+  font-style: italic;
+}
+
+.equations-list {
+  padding: 8px 0;
+}
+
+.equation-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--cream2);
+  gap: 12px;
+  transition: background 0.15s;
+  animation: slideIn 0.3s ease both;
+}
+
+.equation-row:last-child { border-bottom: none; }
+.equation-row:hover { background: #fdfcfa; }
+
+.eq-num {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink5);
+  width: 20px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.eq-terms {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.term-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.op {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  color: var(--ink4);
+  line-height: 1;
+}
+
+.coeff-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.coeff-input {
+  width: 60px;
+  background: var(--cream);
+  border: 1.5px solid var(--cream3);
+  border-radius: 7px;
+  color: var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 6px 8px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  -moz-appearance: textfield;
+}
+
+.coeff-input:focus {
+  border-color: var(--gold);
+  background: var(--gold-light);
+  box-shadow: 0 0 0 3px rgba(184,134,11,0.1);
+}
+
+.coeff-input.invalid {
+  border-color: var(--red);
+  background: #fff5f5;
+  box-shadow: 0 0 0 3px rgba(139,46,46,0.08);
+}
+
+.var-name {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 17px;
+  color: var(--blue);
+  min-width: 14px;
+}
+
+.equals-sign {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  color: var(--ink3);
+  padding: 0 4px;
+}
+
+.rhs-wrap {
+  position: relative;
+}
+
+.rhs-input {
+  width: 72px;
+  background: var(--gold-light);
+  border: 1.5px solid rgba(184,134,11,0.3);
+  border-radius: 7px;
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 8px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rhs-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184,134,11,0.15);
+}
+
+/* Result panel */
+#result-panel {
+  display: none;
+  animation: riseIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.result-card {
+  background: white;
+  border: 1px solid var(--cream3);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px var(--shadow), 0 1px 4px var(--shadow);
+}
+
+.result-header {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--cream3);
+}
+
+.result-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge-icon {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.badge-icon.success { background: #e8f5ec; color: var(--green); }
+.badge-icon.error { background: #fde8e8; color: var(--red); }
+.badge-icon.warn { background: var(--gold-light); color: var(--gold); }
+
+.badge-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  font-style: italic;
+}
+
+.badge-label.success { color: var(--green); }
+.badge-label.error { color: var(--red); }
+.badge-label.warn { color: var(--gold); }
+
+.steps-btn {
+  background: none;
+  border: 1.5px solid var(--cream3);
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink4);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.steps-btn:hover { border-color: var(--ink4); color: var(--ink2); }
+
+.steps-btn svg { transition: transform 0.2s; }
+.steps-btn.open svg { transform: rotate(180deg); }
+
+.result-body {
+  padding: 28px 24px;
+}
+
+.solution-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 14px;
+}
+
+.solution-card {
+  background: var(--cream);
+  border: 1px solid var(--cream3);
+  border-radius: 12px;
+  padding: 18px 14px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: popIn 0.4s cubic-bezier(0.16,1,0.3,1) both;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.solution-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px var(--shadow2);
+}
+
+.solution-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--gold2));
+}
+
+.sol-var {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--blue);
+  margin-bottom: 8px;
+}
+
+.sol-eq {
+  font-size: 11px;
+  color: var(--ink5);
+  margin-bottom: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.sol-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.sol-frac {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink4);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.msg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.msg-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Steps */
+#steps-panel {
+  display: none;
+  border-top: 1px solid var(--cream2);
+}
+
+.steps-inner {
+  padding: 20px 24px;
+}
+
+.steps-title {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink3);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cream3);
+}
+
+.step-row {
+  display: flex;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--cream3);
+  animation: slideIn 0.25s ease both;
+}
+
+.step-row:last-child { border-bottom: none; }
+
+.step-n {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--gold);
+  background: var(--gold-light);
+  border-radius: 5px;
+  padding: 2px 7px;
+  height: fit-content;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.step-desc {
+  font-size: 14px;
+  color: var(--ink3);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.step-mat {
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink4);
+  background: var(--cream);
+  border: 1px solid var(--cream3);
+  border-radius: 7px;
+  padding: 10px 14px;
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.8;
+}
+
+/* Footer */
+footer {
+  margin-top: 64px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: riseIn 0.8s 0.4s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.footer-rule { flex: 1; height: 1px; background: var(--cream3); }
+
+.footer-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink5);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* Animations */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .page { padding: 36px 20px 80px; }
+  h1 { font-size: 40px; }
+  .controls-bar { gap: 12px; }
+  .coeff-input { width: 52px; font-size: 12px; }
+  .equation-row { padding: 12px 16px; }
+  .eq-card-header, .result-header, .result-body, .steps-inner { padding-left: 16px; padding-right: 16px; }
+  .solution-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<div class="side-rule"></div>
+<div class="side-rule side-rule-right"></div>
+
+<div class="page">
+
+  <!-- Header -->
+  <header>
+    <div class="header-rule">
+      <div class="rule-line"></div>
+      <div class="rule-diamond"></div>
+      <span class="issue-label">Mathematical Tool</span>
+      <div class="rule-diamond"></div>
+      <div class="rule-line"></div>
+    </div>
+    <h1>Linear<br><em>Equation</em> Solver</h1>
+    <div class="byline">
+      <span class="byline-text">Gaussian elimination with partial pivoting</span>
+      <div class="byline-dot"></div>
+      <span class="byline-text">2 – 8 variables</span>
+      <div class="byline-dot"></div>
+      <span class="byline-text">step-by-step</span>
+    </div>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Variables</span>
+      <div class="stepper">
+        <button onclick="changeSize(-1)" aria-label="Decrease">−</button>
+        <div class="stepper-val" id="size-display">3</div>
+        <button onclick="changeSize(1)" aria-label="Increase">+</button>
+      </div>
+    </div>
+    <div class="divider-v"></div>
+    <button class="btn btn-solve" onclick="solve()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Solve System
+    </button>
+    <button class="btn btn-secondary" onclick="loadExample()">Example</button>
+    <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+  </div>
+
+  <!-- Equations -->
+  <div class="section-head">
+    <span class="section-title">System of equations</span>
+    <div class="section-rule"></div>
+    <span class="eq-card-hint" style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--ink5);font-style:italic">⌘+Enter to solve</span>
+  </div>
+
+  <div class="eq-card">
+    <div class="eq-card-header">
+      <span class="eq-card-title">Augmented Matrix Input</span>
+      <span class="eq-card-hint">Enter coefficients for each variable</span>
+    </div>
+    <div class="equations-list" id="equations-grid"></div>
+  </div>
+
+  <!-- Result -->
+  <div id="result-panel">
+    <div class="section-head" style="margin-bottom:16px">
+      <span class="section-title">Solution</span>
+      <div class="section-rule"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-header">
+        <div class="result-badge">
+          <div class="badge-icon" id="badge-icon"></div>
+          <span class="badge-label" id="badge-label"></span>
+        </div>
+        <button class="steps-btn" id="steps-btn" onclick="toggleSteps()">
+          Elimination steps
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+      <div class="result-body" id="result-body"></div>
+      <div id="steps-panel">
+        <div class="steps-inner">
+          <div class="steps-title">Row operations — forward elimination</div>
+          <div id="steps-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-rule"></div>
+    <span class="footer-text">Gaussian Elimination · No dependencies</span>
+    <div class="footer-rule"></div>
+  </footer>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let n = 3;
+const VAR = ['x','y','z','w','u','v','p','q'];
+let lastSteps = [];
+
+// ── Grid ───────────────────────────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('equations-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const row = document.createElement('div');
+    row.className = 'equation-row';
+    row.style.animationDelay = `${i * 0.04}s`;
+
+    let html = `<div class="eq-num">${i+1}</div><div class="eq-terms" id="terms-${i}">`;
+    for (let j = 0; j < n; j++) {
+      html += `<div class="term-wrap">`;
+      if (j > 0) html += `<span class="op">+</span>`;
+      html += `<div class="coeff-wrap">
+        <input class="coeff-input" id="c-${i}-${j}" type="text" value="0"
+          autocomplete="off" spellcheck="false" oninput="markDirty(this)" aria-label="Coefficient for ${VAR[j]} in equation ${i+1}">
+      </div>
+      <span class="var-name"><i>${VAR[j]}</i></span>
+      </div>`;
+    }
+    html += `<span class="equals-sign">=</span>
+      <div class="rhs-wrap">
+        <input class="rhs-input" id="r-${i}" type="text" value="0"
+          autocomplete="off" spellcheck="false" oninput="markDirty(this)" aria-label="Right-hand side of equation ${i+1}">
+      </div>`;
+    html += `</div>`;
+    row.innerHTML = html;
+    grid.appendChild(row);
+  }
+}
+
+function markDirty(el) {
+  const v = el.value.trim();
+  el.classList.toggle('invalid', v !== '' && v !== '-' && isNaN(parseFloat(v)));
+}
+
+// ── Controls ───────────────────────────────────────────────────────────────
+function changeSize(d) {
+  n = Math.max(2, Math.min(8, n + d));
+  document.getElementById('size-display').textContent = n;
+  buildGrid();
+  document.getElementById('result-panel').style.display = 'none';
+}
+
+function clearAll() {
+  document.querySelectorAll('.coeff-input, .rhs-input').forEach(el => {
+    el.value = '0'; el.classList.remove('invalid');
+  });
+  document.getElementById('result-panel').style.display = 'none';
+}
+
+function loadExample() {
+  const exs = [
+    { n:2, c:[[3,2],[1,-1]], r:[12,1] },
+    { n:3, c:[[2,1,-1],[1,3,2],[1,-1,3]], r:[8,18,-2] },
+    { n:4, c:[[2,1,0,0],[1,3,1,0],[0,1,4,1],[0,0,1,2]], r:[3,8,15,9] },
+  ];
+  const ex = n <= 2 ? exs[0] : n === 3 ? exs[1] : exs[2];
+  n = ex.n;
+  document.getElementById('size-display').textContent = n;
+  buildGrid();
+  ex.c.forEach((row, i) => row.forEach((v, j) => { document.getElementById(`c-${i}-${j}`).value = v; }));
+  ex.r.forEach((v, i) => { document.getElementById(`r-${i}`).value = v; });
+  document.getElementById('result-panel').style.display = 'none';
+}
+
+// ── Math ────────────────────────────────────────────────────────────────────
+function gcd(a, b) {
+  a = Math.abs(Math.round(a)); b = Math.abs(Math.round(b));
+  while (b) { [a, b] = [b, a % b]; }
+  return a || 1;
+}
+
+function toFraction(val) {
+  if (Math.abs(val) < 1e-9) return '0';
+  if (Math.abs(val - Math.round(val)) < 1e-9) return String(Math.round(val));
+  const sign = val < 0 ? '−' : '';
+  val = Math.abs(val);
+  const D = 1000000;
+  const num = Math.round(val * D);
+  const d = gcd(num, D);
+  return `${sign}${num/d}/${D/d}`;
+}
+
+function fmtVal(v) {
+  if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+  return v.toFixed(6).replace(/\.?0+$/, '');
+}
+
+function matStr(mat) {
+  return mat.map(row => '│ ' + row.map(v => fmtVal(v).padStart(9)).join('  ') + '  │').join('\n');
+}
+
+function solve() {
+  const A = [], b = [];
+  let bad = false;
+  for (let i = 0; i < n; i++) {
+    A.push([]);
+    for (let j = 0; j < n; j++) {
+      const el = document.getElementById(`c-${i}-${j}`);
+      const v = parseFloat(el.value);
+      if (isNaN(v)) { el.classList.add('invalid'); bad = true; } else el.classList.remove('invalid');
+      A[i].push(isNaN(v) ? 0 : v);
+    }
+    const re = document.getElementById(`r-${i}`);
+    const rv = parseFloat(re.value);
+    if (isNaN(rv)) { re.classList.add('invalid'); bad = true; } else re.classList.remove('invalid');
+    b.push(isNaN(rv) ? 0 : rv);
+  }
+  if (bad) return;
+
+  let mat = A.map((row, i) => [...row, b[i]]);
+  const steps = [];
+
+  // Forward elimination
+  for (let col = 0; col < n; col++) {
+    let maxR = col;
+    for (let r = col+1; r < n; r++)
+      if (Math.abs(mat[r][col]) > Math.abs(mat[maxR][col])) maxR = r;
+
+    if (maxR !== col) {
+      [mat[col], mat[maxR]] = [mat[maxR], mat[col]];
+      steps.push({ desc: `Swap R${col+1} ↔ R${maxR+1}`, mat: mat.map(r=>[...r]) });
+    }
+
+    const pivot = mat[col][col];
+    if (Math.abs(pivot) < 1e-12) continue;
+
+    for (let r = col+1; r < n; r++) {
+      const f = mat[r][col] / pivot;
+      if (Math.abs(f) < 1e-12) continue;
+      for (let k = col; k <= n; k++) mat[r][k] -= f * mat[col][k];
+      steps.push({ desc: `R${r+1}  ←  R${r+1}  −  (${toFraction(f)}) · R${col+1}`, mat: mat.map(r=>[...r]) });
+    }
+  }
+
+  let consistent = true, infinite = false;
+  for (let i = 0; i < n; i++) {
+    const allZ = mat[i].slice(0,n).every(v => Math.abs(v) < 1e-9);
+    if (allZ && Math.abs(mat[i][n]) > 1e-9) { consistent = false; break; }
+    if (allZ && Math.abs(mat[i][n]) < 1e-9) infinite = true;
+  }
+
+  const x = new Array(n).fill(0);
+  if (consistent && !infinite) {
+    for (let i = n-1; i >= 0; i--) {
+      x[i] = mat[i][n];
+      for (let j = i+1; j < n; j++) x[i] -= mat[i][j] * x[j];
+      if (Math.abs(mat[i][i]) > 1e-12) x[i] /= mat[i][i];
+    }
+    steps.push({ desc: 'Back-substitution complete — solution extracted', mat: null });
+  }
+
+  lastSteps = steps;
+  showResult(consistent, infinite, x);
+}
+
+function showResult(consistent, infinite, x) {
+  const panel = document.getElementById('result-panel');
+  const body = document.getElementById('result-body');
+  const icon = document.getElementById('badge-icon');
+  const label = document.getElementById('badge-label');
+
+  panel.style.display = 'block';
+  panel.style.animation = 'none';
+  requestAnimationFrame(() => { panel.style.animation = ''; });
+
+  if (!consistent) {
+    icon.className = 'badge-icon error';
+    icon.innerHTML = '✕';
+    label.className = 'badge-label error';
+    label.textContent = 'No solution exists';
+    body.innerHTML = `<div class="msg-row">
+      <span class="msg-icon">📐</span>
+      <span style="color:var(--ink3);font-style:italic">The system is inconsistent — the equations contradict one another. No values of the variables can satisfy all equations simultaneously.</span>
+    </div>`;
+  } else if (infinite) {
+    icon.className = 'badge-icon warn';
+    icon.innerHTML = '∞';
+    label.className = 'badge-label warn';
+    label.textContent = 'Infinitely many solutions';
+    body.innerHTML = `<div class="msg-row">
+      <span class="msg-icon">🔄</span>
+      <span style="color:var(--ink3);font-style:italic">The system has infinitely many solutions — some equations are linearly dependent. The system is underdetermined.</span>
+    </div>`;
+  } else {
+    icon.className = 'badge-icon success';
+    icon.innerHTML = '✓';
+    label.className = 'badge-label success';
+    label.textContent = 'Unique solution found';
+    const cards = x.map((val, i) => {
+      const frac = toFraction(val);
+      const dec  = fmtVal(val);
+      const showF = frac !== dec && !frac.includes('e') && frac !== '0';
+      return `<div class="solution-card" style="animation-delay:${i*0.06}s">
+        <div class="sol-var"><i>${VAR[i]}</i></div>
+        <div class="sol-eq">=</div>
+        <div class="sol-val">${dec}</div>
+        ${showF ? `<div class="sol-frac">${frac}</div>` : ''}
+      </div>`;
+    }).join('');
+    body.innerHTML = `<div class="solution-grid">${cards}</div>`;
+  }
+
+  renderSteps();
+  document.getElementById('steps-panel').style.display = 'none';
+  document.getElementById('steps-btn').classList.remove('open');
+}
+
+function renderSteps() {
+  const sc = document.getElementById('steps-content');
+  sc.innerHTML = lastSteps.map((s, i) => `
+    <div class="step-row" style="animation-delay:${i*0.03}s">
+      <span class="step-n">${i+1}</span>
+      <div>
+        <div class="step-desc">${s.desc}</div>
+        ${s.mat ? `<div class="step-mat">${matStr(s.mat)}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function toggleSteps() {
+  const p = document.getElementById('steps-panel');
+  const b = document.getElementById('steps-btn');
+  const open = p.style.display === 'block';
+  p.style.display = open ? 'none' : 'block';
+  b.classList.toggle('open', !open);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+buildGrid();
+loadExample();
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) solve();
+});
+</script>
+</body>
+</html>
